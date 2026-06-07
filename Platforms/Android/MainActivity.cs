@@ -1006,6 +1006,11 @@ public class MainActivity : Activity
                     ShowReports(ParseDate(monthInput.Text) ?? month);
                 }), FixedMatchHeight(44));
                 AddMuted(content, $"Сформировано за {month:MMMM yyyy}");
+                content.AddView(Spacer(12));
+                content.AddView(PrimaryButton("Скачать отчёт в Excel", async () =>
+                {
+                    await ExportReportsAsync(month);
+                }));
                 content.AddView(Spacer(14));
 
                 foreach (var sheet in sheets)
@@ -1014,7 +1019,7 @@ public class MainActivity : Activity
                 }
 
                 content.AddView(Spacer(16));
-                content.AddView(PrimaryButton("Сохранить и открыть в Excel", async () =>
+                content.AddView(PrimaryButton("Скачать отчёт ещё раз", async () =>
                 {
                     await ExportReportsAsync(month);
                 }));
@@ -1064,6 +1069,7 @@ public class MainActivity : Activity
             return;
         }
 
+        Android.Net.Uri? uri = null;
         try
         {
             var workbook = await _reportService.GenerateExcelWorkbookAsync(null, reportMonth);
@@ -1074,12 +1080,13 @@ public class MainActivity : Activity
             if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
             {
                 values.Put(MediaStore.IMediaColumns.RelativePath, Android.OS.Environment.DirectoryDownloads + "/Plants");
+                values.Put(MediaStore.IMediaColumns.IsPending, 1);
             }
 
             var collection = Build.VERSION.SdkInt >= BuildVersionCodes.Q
                 ? MediaStore.Downloads.ExternalContentUri
                 : MediaStore.Files.GetContentUri("external");
-            var uri = ContentResolver?.Insert(collection, values);
+            uri = ContentResolver?.Insert(collection, values);
             if (uri is null)
             {
                 throw new InvalidOperationException("Не удалось создать файл отчёта.");
@@ -1092,19 +1099,71 @@ public class MainActivity : Activity
                     throw new InvalidOperationException("Не удалось открыть файл отчёта.");
                 }
                 await stream.WriteAsync(workbook);
+                await stream.FlushAsync();
             }
 
-            var share = new Intent(Intent.ActionSend);
-            share.SetType("application/vnd.ms-excel");
-            share.PutExtra(Intent.ExtraStream, uri);
-            share.AddFlags(ActivityFlags.GrantReadUriPermission);
-            StartActivity(Intent.CreateChooser(share, "Открыть или отправить отчёт"));
-            Toast($"Отчёт сохранён: Загрузки/Plants/{fileName}");
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
+            {
+                var completedValues = new ContentValues();
+                completedValues.Put(MediaStore.IMediaColumns.IsPending, 0);
+                ContentResolver.Update(uri, completedValues, null, null);
+            }
+
+            ShowSavedReportDialog(uri, fileName);
         }
         catch (Exception ex)
         {
+            if (uri is not null)
+            {
+                try
+                {
+                    ContentResolver?.Delete(uri, null, null);
+                }
+                catch
+                {
+                    // Частично созданный файл уже недоступен или удалён системой.
+                }
+            }
             await AlertAsync("Ошибка экспорта", ex.Message);
         }
+    }
+
+    private void ShowSavedReportDialog(Android.Net.Uri uri, string fileName)
+    {
+        RunOnUiThread(() =>
+        {
+            new AlertDialog.Builder(this)
+                .SetTitle("Отчёт скачан")
+                .SetMessage($"Файл сохранён в папку Загрузки/Plants:\n{fileName}")
+                .SetPositiveButton("Открыть", (_, _) => OpenReport(uri))
+                .SetNeutralButton("Поделиться", (_, _) => ShareReport(uri))
+                .SetNegativeButton("Закрыть", (_, _) => { })
+                .Show();
+        });
+    }
+
+    private void OpenReport(Android.Net.Uri uri)
+    {
+        try
+        {
+            var open = new Intent(Intent.ActionView);
+            open.SetDataAndType(uri, "application/vnd.ms-excel");
+            open.AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.NewTask);
+            StartActivity(Intent.CreateChooser(open, "Открыть отчёт"));
+        }
+        catch (ActivityNotFoundException)
+        {
+            Toast("Установите Microsoft Excel или Google Таблицы. Файл уже сохранён в Загрузках.");
+        }
+    }
+
+    private void ShareReport(Android.Net.Uri uri)
+    {
+        var share = new Intent(Intent.ActionSend);
+        share.SetType("application/vnd.ms-excel");
+        share.PutExtra(Intent.ExtraStream, uri);
+        share.AddFlags(ActivityFlags.GrantReadUriPermission);
+        StartActivity(Intent.CreateChooser(share, "Отправить отчёт"));
     }
 
     private async Task<List<ScheduleRow>> GetDueScheduleRowsAsync()
