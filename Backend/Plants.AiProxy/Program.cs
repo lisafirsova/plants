@@ -14,7 +14,26 @@ app.MapGet("/health", async (ServerDatabaseService database) =>
     try
     {
         await database.InitializeAsync();
-        return Results.Ok(new { status = "ok", database = "connected" });
+        var aiProvider = !string.IsNullOrWhiteSpace(
+            Environment.GetEnvironmentVariable("GEMINI_API_KEY"))
+            ? "gemini"
+            : !string.IsNullOrWhiteSpace(
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+                ? "openai"
+                : null;
+        if (aiProvider is null)
+        {
+            return Results.Problem(
+                "Не задан GEMINI_API_KEY или OPENAI_API_KEY.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return Results.Ok(new
+        {
+            status = "ok",
+            database = "connected",
+            ai = aiProvider
+        });
     }
     catch (Exception exception)
     {
