@@ -264,6 +264,10 @@ public class MainActivity : Activity
             secondRow.AddView(CategoryCard("icon_cactus", "Суккуленты", "Толстые сочные\nлистья, запасают\nводу", "Добавить", () => ShowAddPlant("Суккуленты")), Weight());
             secondRow.AddView(CategoryCard("icon_pencil", "Редакция", "Редактировать уже\nсуществующие\nрастения", "Редакция", ShowEditPlant), Weight());
             content.AddView(secondRow);
+
+            content.AddView(Spacer(14));
+            content.AddView(PrimaryButton("Отчёты моего сада", () => ShowReports()));
+            AddMuted(content, "План ухода, статистика, динамика роста и список активных растений");
         }, rightText: "⎋", rightAction: () => _ = SignOutAsync());
     }
 
@@ -968,17 +972,18 @@ public class MainActivity : Activity
 
     private async void ShowReports(DateTime? selectedMonth = null)
     {
-        if (_currentUser?.IsAdmin != true || _reportService is null)
+        if (_currentUser is null || _reportService is null)
         {
-            await AlertAsync("Нет доступа", "Отчёты доступны только администратору.");
+            await AlertAsync("Нет доступа", "Для просмотра отчётов необходимо войти в аккаунт.");
             return;
         }
 
+        int? reportUserId = _currentUser.IsAdmin ? null : _currentUser.Id;
         var month = selectedMonth ?? DateTime.Today;
         try
         {
-            var sheets = await _reportService.GetReportSheetsAsync(null, month);
-            BuildScreen("Отчёты", content =>
+            var sheets = await _reportService.GetReportSheetsAsync(reportUserId, month);
+            BuildScreen(_currentUser.IsAdmin ? "Сводные отчёты" : "Отчёты моего сада", content =>
             {
                 content.AddView(Spacer(18));
                 AddSection(content, "Период отчётности");
@@ -992,7 +997,7 @@ public class MainActivity : Activity
                 content.AddView(Spacer(12));
                 content.AddView(PrimaryButton("Скачать отчёт в Excel", async () =>
                 {
-                    await ExportReportsAsync(month);
+                    await ExportReportsAsync(month, reportUserId);
                 }));
                 content.AddView(Spacer(14));
 
@@ -1004,9 +1009,11 @@ public class MainActivity : Activity
                 content.AddView(Spacer(16));
                 content.AddView(PrimaryButton("Скачать отчёт ещё раз", async () =>
                 {
-                    await ExportReportsAsync(month);
+                    await ExportReportsAsync(month, reportUserId);
                 }));
-            }, showBottomNav: false, back: () => ShowAdmin());
+            }, showBottomNav: false, back: _currentUser.IsAdmin
+                ? () => ShowAdmin()
+                : ShowPlants);
         }
         catch (Exception ex)
         {
@@ -1045,7 +1052,7 @@ public class MainActivity : Activity
         return section;
     }
 
-    private async Task ExportReportsAsync(DateTime reportMonth)
+    private async Task ExportReportsAsync(DateTime reportMonth, int? userId)
     {
         if (_reportService is null)
         {
@@ -1055,8 +1062,9 @@ public class MainActivity : Activity
         Android.Net.Uri? uri = null;
         try
         {
-            var workbook = await _reportService.GenerateExcelWorkbookAsync(null, reportMonth);
-            var fileName = $"Plants_reports_{reportMonth:yyyy_MM}_{DateTime.Now:HHmm}.xls";
+            var workbook = await _reportService.GenerateExcelWorkbookAsync(userId, reportMonth);
+            var scope = userId.HasValue ? "my_garden" : "all_users";
+            var fileName = $"Plants_{scope}_{reportMonth:yyyy_MM}_{DateTime.Now:HHmm}.xls";
             var values = new ContentValues();
             values.Put(MediaStore.IMediaColumns.DisplayName, fileName);
             values.Put(MediaStore.IMediaColumns.MimeType, "application/vnd.ms-excel");
