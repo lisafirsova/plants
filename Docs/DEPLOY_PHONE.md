@@ -68,11 +68,11 @@ cd "C:\Users\user\Documents\New project 2"
 
 powershell -ExecutionPolicy Bypass -File .\Scripts\build-phone.ps1 `
   -ApiBaseUrl "https://ВАШ-СЕРВЕР" `
-  -AppKey "ТОТ_ЖЕ_PLANTS_APP_KEY" `
   -Configuration Debug
 ```
 
-Скрипт выведет полный путь к APK. Передайте APK на телефон, разрешите установку
+Скрипт безопасно запросит `PLANTS_APP_KEY` в консоли без отображения введённых
+символов, а затем выведет полный путь к APK. Передайте APK на телефон, разрешите установку
 из выбранного источника и установите приложение.
 
 Для публикации в Google Play необходимо создать release-keystore и собрать

@@ -9,7 +9,20 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ServerDatabaseService>();
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", async (ServerDatabaseService database) =>
+{
+    try
+    {
+        await database.InitializeAsync();
+        return Results.Ok(new { status = "ok", database = "connected" });
+    }
+    catch (Exception exception)
+    {
+        return Results.Problem(
+            $"PostgreSQL недоступен: {exception.Message}",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
 
 app.Use(async (context, next) =>
 {

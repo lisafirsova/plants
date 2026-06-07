@@ -2,7 +2,6 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ApiBaseUrl,
 
-    [Parameter(Mandatory = $true)]
     [string]$AppKey,
 
     [ValidateSet("Debug", "Release")]
@@ -14,6 +13,21 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 
 if (-not $ApiBaseUrl.StartsWith("https://", [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "A physical-phone build requires an HTTPS API URL."
+}
+
+if ([string]::IsNullOrWhiteSpace($AppKey)) {
+    $secureAppKey = Read-Host "Enter PLANTS_APP_KEY from Render" -AsSecureString
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureAppKey)
+    try {
+        $AppKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
+    }
+    finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($AppKey)) {
+    throw "PLANTS_APP_KEY is required."
 }
 
 $normalizedApiBaseUrl = $ApiBaseUrl.TrimEnd('/')
