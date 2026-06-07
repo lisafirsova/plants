@@ -53,6 +53,8 @@ try {
         "-c",
         $Configuration,
         "-p:AndroidPackageFormats=apk",
+        "-p:EmbedAssembliesIntoApk=true",
+        "-p:AndroidFastDeploymentType=None",
         "-p:PlantsApiBaseUrl=$normalizedApiBaseUrl",
         "-p:PlantsAppKey=$AppKey"
     )

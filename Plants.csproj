@@ -17,6 +17,11 @@
 		<PlantsAppKey Condition="'$(PlantsAppKey)' == ''"></PlantsAppKey>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+		<AndroidFastDeploymentType>None</AndroidFastDeploymentType>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
 			<_Parameter1>PlantsApiBaseUrl</_Parameter1>
