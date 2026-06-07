@@ -25,6 +25,7 @@ public class MainActivity : Activity
     private const int PickPhotoRequest = 4801;
     private const int GoogleSignInRequest = 4802;
     private const int AiPhotoRequest = 4803;
+    private const int AdminIssuePhotoRequest = 4804;
     private readonly DatabaseService _database = DatabaseService.Instance;
     private AuthService? _authService;
     private NotificationService? _notificationService;
@@ -49,6 +50,8 @@ public class MainActivity : Activity
     private readonly List<AiChatMessage> _aiChatMessages = [];
     private string? _pendingAiPhotoPath;
     private bool _aiChatBusy;
+    private string? _pendingAdminImageData;
+    private ImageView? _adminImagePreview;
 
     private const string Bg = "#1C1C1C";
     private const string CardBg = "#2A2A2A";
@@ -846,12 +849,12 @@ public class MainActivity : Activity
         BuildScreen("Панель администратора", content =>
         {
             var row1 = Horizontal();
-            row1.AddView(AdminCard("icon_plus_circle", "Добавление", "Добавить новую\nинформацию", "Добавить", () => ShowAdmin("add")), Weight());
+            row1.AddView(AdminCard("icon_plus_circle", "Добавление", "Добавить новую\nинформацию", "Добавить", () => OpenAdminEditor("add")), Weight());
             row1.AddView(AdminCard("icon_minus_circle", "Удаление", "Удалить новую\nинформацию", "Удалить", () => ShowAdmin("delete")), Weight());
             content.AddView(row1);
 
             var row2 = Horizontal();
-            row2.AddView(AdminCard("icon_pencil", "Редакция", "Редактировать новую\nинформацию", "Редакция", () => ShowAdmin("edit")), Weight());
+            row2.AddView(AdminCard("icon_pencil", "Редакция", "Редактировать новую\nинформацию", "Редакция", () => OpenAdminEditor("edit")), Weight());
             row2.AddView(AdminCard("icon_pencil", "Отчёты", "Просмотр и экспорт\nаналитической\nотчётности", "Открыть", () => ShowReports()), Weight());
             content.AddView(row2);
 
@@ -888,6 +891,13 @@ public class MainActivity : Activity
     private sealed record PeriodField(EditText CountInput, Spinner UnitSpinner, LinearLayout View);
 
     private void OpenAdmin() => ShowAdmin();
+
+    private void OpenAdminEditor(string mode)
+    {
+        _pendingAdminImageData = null;
+        _adminImagePreview = null;
+        ShowAdmin(mode);
+    }
 
     private void RequestRuntimePermissions()
     {
@@ -2038,26 +2048,55 @@ public class MainActivity : Activity
         var image = new ImageView(this);
         image.SetScaleType(ImageView.ScaleType.CenterCrop);
         image.Background = Rounded(InputBg, Border, 8, 1);
-        var resourceName = issue.ImagePath?.StartsWith("resource://", StringComparison.OrdinalIgnoreCase) == true
-            ? issue.ImagePath["resource://".Length..]
-            : issue.ImagePath;
+        SetIssueImage(image, issue.ImagePath);
+        return image;
+    }
+
+    private void SetIssueImage(ImageView image, string? imagePath)
+    {
+        image.SetImageDrawable(null);
+        image.SetPadding(0, 0, 0, 0);
+        if (imagePath?.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var comma = imagePath.IndexOf(',');
+            if (comma > 0)
+            {
+                try
+                {
+                    var bytes = Convert.FromBase64String(imagePath[(comma + 1)..]);
+                    using var bitmap = BitmapFactory.DecodeByteArray(bytes, 0, bytes.Length);
+                    if (bitmap is not null)
+                    {
+                        image.SetImageBitmap(bitmap);
+                        return;
+                    }
+                }
+                catch (FormatException)
+                {
+                    // Некорректное пользовательское изображение заменяется стандартной иконкой.
+                }
+            }
+        }
+
+        var resourceName = imagePath?.StartsWith("resource://", StringComparison.OrdinalIgnoreCase) == true
+            ? imagePath["resource://".Length..]
+            : imagePath;
         if (!string.IsNullOrWhiteSpace(resourceName))
         {
             var resourceId = Resources?.GetIdentifier(resourceName, "drawable", PackageName) ?? 0;
             if (resourceId != 0)
             {
                 image.SetImageResource(resourceId);
-                return image;
+                return;
             }
             if (File.Exists(resourceName))
             {
                 image.SetImageURI(Android.Net.Uri.FromFile(new Java.IO.File(resourceName)));
-                return image;
+                return;
             }
         }
         image.SetImageResource(Resource.Drawable.icon_leaf);
         image.SetPadding(Dp(28), Dp(20), Dp(28), Dp(20));
-        return image;
     }
 
     private LinearLayout PhotoRow(Photo photo)
@@ -2275,6 +2314,24 @@ public class MainActivity : Activity
             return;
         }
 
+        if (requestCode == AdminIssuePhotoRequest && resultCode == Result.Ok && data?.Data is not null)
+        {
+            try
+            {
+                _pendingAdminImageData = await CreateCompressedImageDataUriAsync(data.Data);
+                if (_adminImagePreview is not null)
+                {
+                    SetIssueImage(_adminImagePreview, _pendingAdminImageData);
+                }
+                Toast("Изображение готово к сохранению");
+            }
+            catch (Exception ex)
+            {
+                await AlertAsync("Ошибка изображения", ex.Message);
+            }
+            return;
+        }
+
         if (requestCode != PickPhotoRequest || resultCode != Result.Ok || data?.Data is null)
         {
             return;
@@ -2377,19 +2434,36 @@ public class MainActivity : Activity
             recordSpinner = AdminRecordSpinner(records);
             panel.AddView(recordSpinner, FixedMatchHeight(52));
             FillAdminInputs(records[0], nameInput, treatmentInput, typeRow.Pest, typeRow.Disease, plantTypeRow);
+            _pendingAdminImageData = records[0].ImagePath;
             recordSpinner.ItemSelected += (_, args) =>
             {
                 var selected = records.ElementAtOrDefault(args.Position);
                 if (selected is not null)
                 {
                     FillAdminInputs(selected, nameInput, treatmentInput, typeRow.Pest, typeRow.Disease, plantTypeRow);
+                    _pendingAdminImageData = selected.ImagePath;
+                    if (_adminImagePreview is not null)
+                    {
+                        SetIssueImage(_adminImagePreview, _pendingAdminImageData);
+                    }
                 }
             };
         }
 
         panel.AddView(nameInput);
         panel.AddView(treatmentInput);
-        panel.AddView(ImagePlaceholder(122, false), FixedMatchHeight(122));
+        AddMuted(panel, "Изображение признаков болезни или вредителя");
+        _adminImagePreview = new ImageView(this);
+        _adminImagePreview.SetScaleType(ImageView.ScaleType.CenterCrop);
+        _adminImagePreview.Background = Rounded(InputBg, Border, 12, 1);
+        SetIssueImage(_adminImagePreview, _pendingAdminImageData);
+        _adminImagePreview.Click += (_, _) => PickAdminIssuePhoto();
+        panel.AddView(_adminImagePreview, FixedMatchHeight(180));
+        panel.AddView(Pill(
+            string.IsNullOrWhiteSpace(_pendingAdminImageData) ? "Выбрать изображение" : "Заменить изображение",
+            false,
+            PickAdminIssuePhoto), FixedMatchHeight(42));
+        AddMuted(panel, "Фото будет сжато и сохранено в общей PostgreSQL. Оно появится на всех телефонах.");
         panel.AddView(typeRow.Row);
         AddMuted(panel, "Для каких растений подходит запись");
         panel.AddView(plantTypeRow.Row);
@@ -2418,7 +2492,7 @@ public class MainActivity : Activity
                     : new Pest();
                 record.Name = name;
                 record.TreatmentDescription = string.IsNullOrWhiteSpace(treatment) ? "Описание лечения не указано" : treatment;
-                record.ImagePath = record.ImagePath ?? string.Empty;
+                record.ImagePath = _pendingAdminImageData ?? record.ImagePath ?? string.Empty;
                 record.IsPest = typeRow.Pest.Checked || !typeRow.Disease.Checked;
                 record.PlantTypes = selectedPlantTypes;
 
@@ -2441,6 +2515,42 @@ public class MainActivity : Activity
             }
         }), FixedMatchHeight(54));
         return panel;
+    }
+
+    private void PickAdminIssuePhoto()
+    {
+        var intent = new Intent(Intent.ActionGetContent);
+        intent.SetType("image/*");
+        intent.AddCategory(Intent.CategoryOpenable);
+        StartActivityForResult(
+            Intent.CreateChooser(intent, "Выберите изображение для справочника"),
+            AdminIssuePhotoRequest);
+    }
+
+    private async Task<string> CreateCompressedImageDataUriAsync(Android.Net.Uri uri)
+    {
+        await using var input = ContentResolver?.OpenInputStream(uri)
+            ?? throw new InvalidOperationException("Не удалось открыть выбранное изображение.");
+        using var original = await BitmapFactory.DecodeStreamAsync(input)
+            ?? throw new InvalidOperationException("Формат изображения не поддерживается.");
+
+        const int maxSide = 1024;
+        var scale = Math.Min(1d, maxSide / (double)Math.Max(original.Width, original.Height));
+        var width = Math.Max(1, (int)Math.Round(original.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(original.Height * scale));
+        using var resized = scale < 1
+            ? Bitmap.CreateScaledBitmap(original, width, height, true)
+            : original.Copy(original.GetConfig() ?? Bitmap.Config.Argb8888, false);
+        using var output = new MemoryStream();
+        if (!resized.Compress(Bitmap.CompressFormat.Jpeg, 82, output))
+        {
+            throw new InvalidOperationException("Не удалось подготовить изображение.");
+        }
+        if (output.Length > 1_500_000)
+        {
+            throw new InvalidOperationException("Изображение получилось слишком большим. Выберите другое фото.");
+        }
+        return $"data:image/jpeg;base64,{Convert.ToBase64String(output.ToArray())}";
     }
 
     private LinearLayout AdminSpeciesPanel(List<PlantSpecies> species)
