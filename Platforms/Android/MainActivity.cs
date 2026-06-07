@@ -232,19 +232,6 @@ public class MainActivity : Activity
                 return;
             }
 
-            content.AddView(Pill("Проверить уведомления", false, () =>
-            {
-                if (_notificationService?.NotificationsEnabled() == true)
-                {
-                    _notificationService.ShowTestNotification();
-                    Toast("Проверочное уведомление отправлено");
-                }
-                else
-                {
-                    RequestNotificationPermission();
-                }
-            }), FixedMatchHeight(40));
-            content.AddView(Spacer(10));
             content.AddView(CalendarModeControl());
             content.AddView(CalendarPeriodNavigation());
             content.AddView(Spacer(10));
@@ -259,7 +246,7 @@ public class MainActivity : Activity
             {
                 AddScheduleGroup(content, CalendarDateTitle(group.Key), group.ToList());
             }
-        }, rightText: "__share", rightAction: () => Toast("Поделиться календарем ухода"));
+        });
     }
 
     private void ShowPlants()
@@ -919,10 +906,7 @@ public class MainActivity : Activity
         if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
         {
             RequestPermissions([Android.Manifest.Permission.PostNotifications], 43);
-            return;
         }
-        _notificationService?.ShowTestNotification();
-        Toast("Проверочное уведомление отправлено");
     }
 
     public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
@@ -932,7 +916,6 @@ public class MainActivity : Activity
             permissions.Contains(Android.Manifest.Permission.PostNotifications) &&
             grantResults.ElementAtOrDefault(Array.IndexOf(permissions, Android.Manifest.Permission.PostNotifications)) == Permission.Granted)
         {
-            _notificationService?.ShowTestNotification();
             _ = LoadPlantsAsync();
         }
     }
@@ -2524,18 +2507,40 @@ public class MainActivity : Activity
         panel.Background = Rounded(SheetBg, SoftBorder, 22, 1);
         panel.LayoutParameters = MarginMatch(0, Dp(16), 0, Dp(12));
 
-        var photoDays = Input("Период проверки фото, дней");
+        AddSection(panel, "Как работают рекомендации");
+        AddMuted(panel,
+            "Укажите, через сколько дней система должна напоминать о повторной проверке. " +
+            "Чем меньше число, тем чаще пользователь будет получать советы.");
+        panel.AddView(Spacer(12));
+
+        AddSection(panel, "Анализ фотоархива");
+        AddMuted(panel,
+            "Как часто ИИ должен сравнивать новые фотографии растения. Например: 14 — проверять изменения каждые две недели.");
+        var photoDays = Input("Например: 14 дней");
         photoDays.InputType = InputTypes.ClassNumber;
         photoDays.Text = settings.GetValueOrDefault("photo_check_days", 14).ToString("0");
-        var pruningDays = Input("Период проверки обрезки, дней");
+        panel.AddView(photoDays);
+        panel.AddView(Spacer(12));
+
+        AddSection(panel, "Рекомендация об обрезке");
+        AddMuted(panel,
+            "Через сколько дней после предыдущей проверки снова оценивать необходимость обрезки. Например: 90 — раз в три месяца.");
+        var pruningDays = Input("Например: 90 дней");
         pruningDays.InputType = InputTypes.ClassNumber;
         pruningDays.Text = settings.GetValueOrDefault("pruning_check_days", 90).ToString("0");
-        var repotDays = Input("Период проверки пересадки, дней");
+        panel.AddView(pruningDays);
+        panel.AddView(Spacer(12));
+
+        AddSection(panel, "Рекомендация о пересадке");
+        AddMuted(panel,
+            "Через сколько дней проверять, не пора ли пересадить растение. Например: 365 — один раз в год.");
+        var repotDays = Input("Например: 365 дней");
         repotDays.InputType = InputTypes.ClassNumber;
         repotDays.Text = settings.GetValueOrDefault("repot_check_days", 365).ToString("0");
-        panel.AddView(photoDays);
-        panel.AddView(pruningDays);
         panel.AddView(repotDays);
+        AddMuted(panel,
+            "Значения применяются ко всем пользователям. ИИ также учитывает фотографию, вид растения и вопрос пользователя.");
+        panel.AddView(Spacer(14));
         panel.AddView(PrimaryButton("Сохранить настройки", async () =>
         {
             if (!decimal.TryParse(photoDays.Text, out var photo) || photo <= 0 ||
