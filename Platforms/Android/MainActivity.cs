@@ -52,6 +52,8 @@ public class MainActivity : Activity
     private bool _aiChatBusy;
     private string? _pendingAdminImageData;
     private ImageView? _adminImagePreview;
+    private bool _plantCreateInProgress;
+    private bool _plantDeleteInProgress;
 
     private const string Bg = "#1C1C1C";
     private const string CardBg = "#2A2A2A";
@@ -336,17 +338,39 @@ public class MainActivity : Activity
             var repottingTime = TimeInput(new TimeSpan(10, 0, 0));
             content.AddView(repottingTime);
             content.AddView(Spacer(16));
-            content.AddView(PrimaryButton("Добавить растение", async () =>
+            Button? addPlantButton = null;
+            addPlantButton = PrimaryButton("Добавить растение", async () =>
             {
-                await AddPlantAsync(
-                    nameInput,
-                    species.ElementAtOrDefault(speciesSpinner.SelectedItemPosition - 1),
-                    phaseSpinner, healthSpinner, locationInput, notesInput,
-                    wateringToggle, waterDate, waterPeriod, waterTime,
-                    fertilizerToggle, fertilizerDate, fertilizerPeriod, fertilizerTime,
-                    pruningToggle, pruningDate, pruningPeriod, pruningTime,
-                    repottingToggle, repottingDate, repottingPeriod, repottingTime);
-            }));
+                if (_plantCreateInProgress)
+                {
+                    return;
+                }
+
+                _plantCreateInProgress = true;
+                addPlantButton.Enabled = false;
+                addPlantButton.Text = "Сохраняем...";
+                try
+                {
+                    await AddPlantAsync(
+                        nameInput,
+                        species.ElementAtOrDefault(speciesSpinner.SelectedItemPosition - 1),
+                        phaseSpinner, healthSpinner, locationInput, notesInput,
+                        wateringToggle, waterDate, waterPeriod, waterTime,
+                        fertilizerToggle, fertilizerDate, fertilizerPeriod, fertilizerTime,
+                        pruningToggle, pruningDate, pruningPeriod, pruningTime,
+                        repottingToggle, repottingDate, repottingPeriod, repottingTime);
+                }
+                finally
+                {
+                    _plantCreateInProgress = false;
+                    if (addPlantButton.IsAttachedToWindow)
+                    {
+                        addPlantButton.Enabled = true;
+                        addPlantButton.Text = "Добавить растение";
+                    }
+                }
+            });
+            content.AddView(addPlantButton);
         }, showBottomNav: false, back: async () => await ShowWatering(false));
     }
 
@@ -472,7 +496,91 @@ public class MainActivity : Activity
                         repottingToggle, repottingDate, repottingPeriod, repottingTime);
                 }
             }));
+            content.AddView(Spacer(10));
+            var deleteButton = Pill("Удалить растение", false, async () =>
+            {
+                if (_plantDeleteInProgress)
+                {
+                    return;
+                }
+
+                var plant = _plants.ElementAtOrDefault(plantSpinner.SelectedItemPosition);
+                if (plant is null)
+                {
+                    await AlertAsync("Удаление", "Выберите растение.");
+                    return;
+                }
+                if (!await ConfirmAsync(
+                        "Удаление растения",
+                        $"Удалить «{plant.Name}» вместе с расписаниями, задачами и фотоархивом? Отменить это действие будет нельзя."))
+                {
+                    return;
+                }
+
+                _plantDeleteInProgress = true;
+                try
+                {
+                    await DeleteUserPlantAsync(plant);
+                }
+                finally
+                {
+                    _plantDeleteInProgress = false;
+                }
+            });
+            deleteButton.SetTextColor(AColor.ParseColor(Red));
+            deleteButton.Background = Rounded(Bg, Red, 26, 2);
+            content.AddView(deleteButton, FixedMatchHeight(52));
         }, showBottomNav: false, back: ShowPlants);
+    }
+
+    private async Task DeleteUserPlantAsync(Plant plant)
+    {
+        if (_currentUser is null || plant.UserId != _currentUser.Id)
+        {
+            await AlertAsync("Нет доступа", "Можно удалять только собственные растения.");
+            return;
+        }
+
+        try
+        {
+            var photos = await _database.GetPhotosAsync(plant.Id);
+            _notificationService?.CancelNotification(plant.Id);
+            var deleted = await _database.DeletePlantAsync(plant.Id);
+            if (deleted == 0)
+            {
+                await AlertAsync("Удаление", "Растение уже было удалено.");
+                await LoadPlantsAsync();
+                ShowPlants();
+                return;
+            }
+
+            foreach (var photo in photos)
+            {
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(photo.FilePath) && File.Exists(photo.FilePath))
+                    {
+                        File.Delete(photo.FilePath);
+                    }
+                }
+                catch (IOException)
+                {
+                    // Запись в БД уже удалена; недоступный локальный файл не мешает завершить операцию.
+                }
+            }
+
+            if (_selectedPhotoPlant?.Id == plant.Id)
+            {
+                _selectedPhotoPlant = null;
+            }
+            await LoadPlantsAsync();
+            await AlertAsync("Готово", $"Растение «{plant.Name}» удалено.");
+            ShowPlants();
+        }
+        catch (Exception ex)
+        {
+            await AlertAsync("Ошибка PostgreSQL", ex.Message);
+        }
     }
 
     private async void ShowPhotos(bool addMode)

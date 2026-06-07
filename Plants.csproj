@@ -10,7 +10,7 @@
 		<ApplicationTitle>Plants</ApplicationTitle>
 		<ApplicationId>com.companyname.plants</ApplicationId>
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>5</ApplicationVersion>
+		<ApplicationVersion>6</ApplicationVersion>
 		<SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
 		<AndroidApplication>true</AndroidApplication>
 		<PlantsApiBaseUrl Condition="'$(PlantsApiBaseUrl)' == ''">http://10.0.2.2:5079</PlantsApiBaseUrl>
