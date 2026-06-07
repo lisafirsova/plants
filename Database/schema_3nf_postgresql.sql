@@ -177,17 +177,29 @@ values
 on conflict (name) do nothing;
 
 insert into app_reference_items (category_id, name, treatment_description, image_path)
-select c.id, v.name, v.treatment, ''
+select c.id, v.name, v.treatment, v.image_path
 from app_reference_categories c
 join (values
-    ('pest', 'Тля', 'Промойте листья мыльным раствором, удалите поврежденные части и обработайте растение инсектицидом.'),
-    ('pest', 'Паутинный клещ', 'Повысьте влажность, промойте растение и проведите обработку акарицидом.'),
-    ('pest', 'Щитовка', 'Снимите вредителей вручную и обработайте листья системным инсектицидом.'),
-    ('disease', 'Мучнистая роса', 'Удалите пораженные листья, обеспечьте проветривание и примените фунгицид.'),
-    ('disease', 'Корневая гниль', 'Удалите гнилые корни, замените грунт и сократите полив.'),
-    ('disease', 'Пятнистость листьев', 'Удалите пораженные листья и примените фунгицид по инструкции.')
-) as v(category_code, name, treatment) on v.category_code = c.code
-on conflict (category_id, name) do nothing;
+    ('pest', 'Тля', 'Колонии на молодых побегах. Промыть растение и применить инсектицид.', 'resource://issue_aphids'),
+    ('pest', 'Паутинный клещ', 'Светлые точки и паутинка. Промыть растение и применить акарицид.', 'resource://issue_spider_mite'),
+    ('pest', 'Щитовка', 'Коричневые бляшки. Удалить вручную и применить системный инсектицид.', 'resource://issue_scale'),
+    ('pest', 'Мучнистый червец', 'Белые ватные колонии. Удалить вручную и провести повторные обработки.', 'resource://issue_mealybug'),
+    ('pest', 'Трипсы', 'Серебристые повреждения. Удалить поражённые части и применить инсектицид.', 'resource://issue_thrips'),
+    ('pest', 'Грибные комарики', 'Мушки у влажного грунта. Просушить субстрат и уничтожить личинок.', 'resource://issue_fungus_gnat'),
+    ('disease', 'Мучнистая роса', 'Белый налёт. Удалить поражённые листья и применить фунгицид.', 'resource://issue_powdery_mildew'),
+    ('disease', 'Корневая гниль', 'Удалить гнилые корни, заменить грунт и сократить полив.', 'resource://issue_root_rot'),
+    ('disease', 'Пятнистость листьев', 'Удалить поражённые листья и применить фунгицид.', 'resource://issue_leaf_spot'),
+    ('disease', 'Серая гниль', 'Удалить заражённые части, уменьшить влажность и применить фунгицид.', 'resource://issue_gray_mold'),
+    ('disease', 'Ржавчина растений', 'Удалить поражённые листья и применить системный фунгицид.', 'resource://issue_rust'),
+    ('disease', 'Сажистый грибок', 'Уничтожить сосущих вредителей и промыть листья.', 'resource://issue_sooty_mold'),
+    ('disease', 'Бактериальная мягкая гниль', 'Удалить поражённую ткань, обработать срез и сократить полив.', 'resource://issue_soft_rot'),
+    ('disease', 'Пробковая пятнистость кактусов', 'Исправить условия содержания и при распространении применить фунгицид.', 'resource://issue_cactus_scab'),
+    ('disease', 'Эдема листьев', 'Сократить полив, увеличить освещение и вентиляцию.', 'resource://issue_edema'),
+    ('disease', 'Хлороз', 'Проверить грунт и корни, внести удобрение с микроэлементами.', 'resource://issue_chlorosis')
+) as v(category_code, name, treatment, image_path) on v.category_code = c.code
+on conflict (category_id, name) do update
+set treatment_description = excluded.treatment_description,
+    image_path = excluded.image_path;
 
 insert into app_reference_item_plant_types (reference_item_id, plant_type_id)
 select i.id, t.id
@@ -195,9 +207,11 @@ from app_reference_items i
 join app_reference_categories c on c.id = i.category_id
 cross join app_plant_types t
 where
-    (i.name = 'Тля' and t.name in ('Лиственные', 'Цветущие')) or
-    (i.name = 'Паутинный клещ') or
+    (i.name in ('Паутинный клещ', 'Мучнистый червец', 'Грибные комарики', 'Корневая гниль', 'Хлороз')) or
+    (i.name in ('Тля', 'Трипсы', 'Мучнистая роса', 'Пятнистость листьев', 'Серая гниль',
+                'Ржавчина растений', 'Сажистый грибок', 'Эдема листьев')
+        and t.name in ('Лиственные', 'Цветущие')) or
     (i.name = 'Щитовка' and t.name in ('Лиственные', 'Суккуленты')) or
-    (i.name in ('Мучнистая роса', 'Пятнистость листьев') and t.name in ('Лиственные', 'Цветущие')) or
-    (i.name = 'Корневая гниль')
+    (i.name = 'Бактериальная мягкая гниль' and t.name in ('Цветущие', 'Суккуленты')) or
+    (i.name = 'Пробковая пятнистость кактусов' and t.name = 'Суккуленты')
 on conflict do nothing;

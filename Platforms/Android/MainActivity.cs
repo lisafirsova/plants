@@ -666,10 +666,12 @@ public class MainActivity : Activity
     {
         BuildScreen(issue.Name, content =>
         {
-            content.AddView(ImagePlaceholder(220, true));
+            content.AddView(IssueImage(issue, 220), new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MatchParent,
+                Dp(220)));
             AddSection(content, "Способ лечения");
             var body = Txt(issue.TreatmentDescription, 14, Secondary, TypefaceStyle.Normal);
-            body.Gravity = GravityFlags.Center;
+            body.Gravity = GravityFlags.Left;
             body.SetLineSpacing(0, 1.25f);
             content.AddView(body);
             if (_currentUser?.IsAdmin != true && _plants.Count > 0)
@@ -2022,13 +2024,40 @@ public class MainActivity : Activity
         var row = Horizontal();
         row.SetGravity(GravityFlags.CenterVertical);
         row.SetPadding(0, Dp(8), 0, Dp(10));
-        row.AddView(ImagePlaceholder(90, false), Fixed(172, 96));
+        row.AddView(IssueImage(issue, 96), Fixed(172, 96));
         var right = Vertical();
         AddTitle(right, issue.Name, 16);
         right.AddView(Txt(issue.PlantTypesLabel, 12, Secondary, TypefaceStyle.Normal));
         right.AddView(Pill("Узнать больше", true, () => ShowTreatment(issue)), Fixed(170, 36));
         row.AddView(right, Weight());
         return row;
+    }
+
+    private ImageView IssueImage(Pest issue, int height)
+    {
+        var image = new ImageView(this);
+        image.SetScaleType(ImageView.ScaleType.CenterCrop);
+        image.Background = Rounded(InputBg, Border, 8, 1);
+        var resourceName = issue.ImagePath?.StartsWith("resource://", StringComparison.OrdinalIgnoreCase) == true
+            ? issue.ImagePath["resource://".Length..]
+            : issue.ImagePath;
+        if (!string.IsNullOrWhiteSpace(resourceName))
+        {
+            var resourceId = Resources?.GetIdentifier(resourceName, "drawable", PackageName) ?? 0;
+            if (resourceId != 0)
+            {
+                image.SetImageResource(resourceId);
+                return image;
+            }
+            if (File.Exists(resourceName))
+            {
+                image.SetImageURI(Android.Net.Uri.FromFile(new Java.IO.File(resourceName)));
+                return image;
+            }
+        }
+        image.SetImageResource(Resource.Drawable.icon_leaf);
+        image.SetPadding(Dp(28), Dp(20), Dp(28), Dp(20));
+        return image;
     }
 
     private LinearLayout PhotoRow(Photo photo)
