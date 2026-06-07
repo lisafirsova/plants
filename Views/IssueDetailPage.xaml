@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Plants.Views.IssueDetailPage"
+             Title="Проблема">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,18" Spacing="14">
+            <Border Padding="18">
+                <VerticalStackLayout Spacing="8">
+                    <BoxView WidthRequest="58"
+                             HeightRequest="58"
+                             CornerRadius="8"
+                             Color="{Binding Issue.AccentColor}"
+                             HorizontalOptions="Start" />
+                    <Label Text="{Binding Issue.Name}" FontSize="30" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Issue.TypeText}" TextColor="{StaticResource TextMuted}" />
+                    <Label Text="{Binding Issue.Severity}" TextColor="{StaticResource AccentWarm}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Симптомы" FontSize="18" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Issue.Symptoms}" TextColor="{StaticResource TextMuted}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Что сделать" FontSize="18" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Issue.Treatment}" TextColor="{StaticResource TextMuted}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Профилактика" FontSize="18" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Issue.Prevention}" TextColor="{StaticResource TextMuted}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

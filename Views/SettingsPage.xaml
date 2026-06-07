@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Plants.Views.SettingsPage"
+             Title="Настройки">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,18" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Настройки" FontSize="28" FontFamily="OpenSansSemibold" />
+                <Label Text="Заглушки интеграций, которые позже можно заменить реальными сервисами."
+                       TextColor="{StaticResource TextMuted}" />
+            </VerticalStackLayout>
+
+            <Border Padding="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Push-уведомления" FontSize="18" FontFamily="OpenSansSemibold" />
+                        <Label Text="Только локальная заглушка без реальных пушей."
+                               TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1" IsToggled="{Binding PushNotificationsEnabled}" />
+                </Grid>
+            </Border>
+
+            <Border Padding="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Темная тема" FontSize="18" FontFamily="OpenSansSemibold" />
+                        <Label Text="Интерфейс проекта уже собран в темной дизайн-системе."
+                               TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1" IsToggled="{Binding DarkThemeEnabled}" IsEnabled="False" />
+                </Grid>
+            </Border>
+
+            <Button Text="Подключить Google"
+                    Command="{Binding ConnectGoogleCommand}" />
+            <Button Text="Экспорт отчета"
+                    BackgroundColor="{StaticResource SurfaceAlt}"
+                    TextColor="{StaticResource TextPrimary}"
+                    Command="{Binding ExportReportCommand}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

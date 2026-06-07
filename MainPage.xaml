@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Plants.MainPage"
+             Title="Сад">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="18">
+            <Label Text="Домашний сад"
+                   FontSize="34"
+                   FontFamily="OpenSansSemibold"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Контроль растений, задач ухода, фото-наблюдений и справочника проблем."
+                   TextColor="{StaticResource TextMuted}"
+                   FontSize="16" />
+
+            <Grid ColumnDefinitions="*,*"
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="12"
+                  RowSpacing="12">
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding PlantCount}" FontSize="30" FontFamily="OpenSansSemibold" />
+                        <Label Text="растений" TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" Padding="16">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding PlannedTaskCount}" FontSize="30" FontFamily="OpenSansSemibold" />
+                        <Label Text="задач ухода" TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.ColumnSpan="2" Padding="16">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding LibraryCount, StringFormat='{0} карточек'}"
+                                   FontSize="22"
+                                   FontFamily="OpenSansSemibold" />
+                            <Label Text="вредителей и болезней в справочнике"
+                                   TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                        <BoxView Grid.Column="1"
+                                 WidthRequest="52"
+                                 HeightRequest="52"
+                                 CornerRadius="8"
+                                 Color="{StaticResource AccentWarm}" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Label Text="Быстрые действия"
+                   FontSize="18"
+                   FontFamily="OpenSansSemibold" />
+            <Button Text="Открыть растения" Command="{Binding GoToPlantsCommand}" />
+            <Button Text="Задачи на сегодня" Command="{Binding GoToTasksCommand}" />
+            <Button Text="Справочник проблем" Command="{Binding GoToLibraryCommand}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

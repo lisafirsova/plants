@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Plants.Views.PlantDetailPage"
+             Title="Карточка растения">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,18" Spacing="16">
+            <Border Padding="18">
+                <VerticalStackLayout Spacing="10">
+                    <BoxView WidthRequest="64"
+                             HeightRequest="64"
+                             CornerRadius="8"
+                             Color="{Binding Plant.AccentColor}"
+                             HorizontalOptions="Start" />
+                    <Label Text="{Binding Plant.Name}" FontSize="30" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Plant.LatinName}" TextColor="{StaticResource TextMuted}" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Тип" TextColor="{StaticResource TextMuted}" FontSize="12" />
+                            <Label Text="{Binding Plant.Type}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
+                            <Label Text="Статус" TextColor="{StaticResource TextMuted}" FontSize="12" />
+                            <Label Text="{Binding Plant.HealthStatus}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Spacing="3">
+                            <Label Text="Последний полив" TextColor="{StaticResource TextMuted}" FontSize="12" />
+                            <Label Text="{Binding Plant.LastWateredText}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="3">
+                            <Label Text="Место" TextColor="{StaticResource TextMuted}" FontSize="12" />
+                            <Label Text="{Binding Plant.Location}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Уход" FontSize="18" FontFamily="OpenSansSemibold" />
+                    <Label Text="{Binding Plant.WateringHint}" TextColor="{StaticResource TextMuted}" />
+                    <Label Text="{Binding Plant.Notes}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Label Text="Фото-наблюдения"
+                       FontSize="18"
+                       FontFamily="OpenSansSemibold"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="Добавить" Command="{Binding AddPhotoCommand}" />
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding Photos}" HeightRequest="172">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <Label Text="Фото пока нет." TextColor="{StaticResource TextMuted}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border WidthRequest="180" Padding="12">
+                            <VerticalStackLayout Spacing="8">
+                                <BoxView HeightRequest="82"
+                                         CornerRadius="8"
+                                         Color="{Binding PlaceholderColor}" />
+                                <Label Text="{Binding Caption}"
+                                       FontFamily="OpenSansSemibold"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding TakenAtText}" TextColor="{StaticResource TextMuted}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

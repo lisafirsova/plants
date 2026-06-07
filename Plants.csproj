@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-android</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>Plants</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<ApplicationTitle>Plants</ApplicationTitle>
+		<ApplicationId>com.companyname.plants</ApplicationId>
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+		<SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
+		<AndroidApplication>true</AndroidApplication>
+		<PlantsApiBaseUrl Condition="'$(PlantsApiBaseUrl)' == ''">http://10.0.2.2:5079</PlantsApiBaseUrl>
+		<PlantsAppKey Condition="'$(PlantsAppKey)' == ''"></PlantsAppKey>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>PlantsApiBaseUrl</_Parameter1>
+			<_Parameter2>$(PlantsApiBaseUrl)</_Parameter2>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>PlantsAppKey</_Parameter1>
+			<_Parameter2>$(PlantsAppKey)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="App.xaml.cs" />
+		<Compile Remove="AppShell.xaml.cs" />
+		<Compile Remove="MainPage.xaml.cs" />
+		<Compile Remove="MauiProgram.cs" />
+		<Compile Remove="Views\**\*.cs" />
+		<Compile Remove="PlantsRN\**" />
+		<Compile Remove="Backend\**\*.cs" />
+		<Compile Remove="Platforms\iOS\**\*.cs" />
+		<Compile Remove="Platforms\MacCatalyst\**\*.cs" />
+		<Compile Remove="Platforms\Windows\**\*.cs" />
+		<AndroidResource Remove="Resources\**" />
+		<AndroidResource Remove="PlantsRN\**" />
+		<AndroidAsset Remove="Resources\**" />
+		<AndroidAsset Remove="PlantsRN\**" />
+		<AndroidJavaSource Remove="PlantsRN\**" />
+		<AndroidLibrary Remove="PlantsRN\**" />
+		<None Remove="Resources\**" />
+		<None Remove="PlantsRN\**" />
+		<None Remove="Backend\**" />
+		<Content Remove="PlantsRN\**" />
+		<EmbeddedResource Remove="PlantsRN\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Xamarin.GooglePlayServices.Auth" Version="121.5.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AndroidResource Include="Platforms\Android\Resources\**\*">
+			<Link>Resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</AndroidResource>
+	</ItemGroup>
+
+</Project>
+

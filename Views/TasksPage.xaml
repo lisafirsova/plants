@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Plants.Views.TasksPage"
+             x:Name="TasksPageRoot"
+             Title="Задачи">
+    <Grid RowDefinitions="Auto,*" Padding="20,18" RowSpacing="16">
+        <VerticalStackLayout Spacing="4">
+            <Label Text="Задачи ухода" FontSize="28" FontFamily="OpenSansSemibold" />
+            <Label Text="Статусы меняются локально через mock-сервис."
+                   TextColor="{StaticResource TextMuted}" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Tasks}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="14" Margin="0,0,0,12">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{Binding Title}" FontSize="18" FontFamily="OpenSansSemibold" />
+                                    <Label Text="{Binding PlantName}" TextColor="{StaticResource TextMuted}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" HorizontalOptions="End">
+                                    <Label Text="{Binding DueDateText}" HorizontalTextAlignment="End" />
+                                    <Label Text="{Binding StatusText}"
+                                           TextColor="{StaticResource AccentWarm}"
+                                           HorizontalTextAlignment="End" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <Label Text="{Binding Description}" TextColor="{StaticResource TextMuted}" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Button Text="Готово"
+                                        FontSize="12"
+                                        Padding="8,6"
+                                        Command="{Binding BindingContext.MarkDoneCommand, Source={x:Reference TasksPageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                <Button Grid.Column="1"
+                                        Text="Пропуск"
+                                        FontSize="12"
+                                        Padding="8,6"
+                                        BackgroundColor="{StaticResource SurfaceAlt}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        Command="{Binding BindingContext.MarkSkippedCommand, Source={x:Reference TasksPageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                <Button Grid.Column="2"
+                                        Text="Вернуть"
+                                        FontSize="12"
+                                        Padding="8,6"
+                                        BackgroundColor="{StaticResource SurfaceAlt}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        Command="{Binding BindingContext.ReopenCommand, Source={x:Reference TasksPageRoot}}"
+                                        CommandParameter="{Binding .}" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

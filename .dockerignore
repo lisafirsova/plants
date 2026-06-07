@@ -1,0 +1,11 @@
+**/bin
+**/obj
+.git
+.vs
+.dotnet
+.appdata
+PlantsRN
+Docs
+icons
+*.user
+*.suo

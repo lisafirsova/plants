@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Color x:Key="Primary">#4CC38A</Color>
+    <Color x:Key="PrimaryDark">#6DD6A3</Color>
+    <Color x:Key="PrimaryDarkText">#08130F</Color>
+    <Color x:Key="Secondary">#99E2B4</Color>
+    <Color x:Key="SecondaryDarkText">#EAF7EF</Color>
+    <Color x:Key="Tertiary">#F4B860</Color>
+    <Color x:Key="White">#FFFFFF</Color>
+    <Color x:Key="Black">#050907</Color>
+    <Color x:Key="OffBlack">#07100C</Color>
+    <Color x:Key="MidnightBlue">#10231B</Color>
+    <Color x:Key="Magenta">#6DD6A3</Color>
+
+    <Color x:Key="Gray100">#F5F7F6</Color>
+    <Color x:Key="Gray200">#DCE6E0</Color>
+    <Color x:Key="Gray300">#B9C8C0</Color>
+    <Color x:Key="Gray400">#94A69C</Color>
+    <Color x:Key="Gray500">#72837A</Color>
+    <Color x:Key="Gray600">#4C5B53</Color>
+    <Color x:Key="Gray900">#17231D</Color>
+    <Color x:Key="Gray950">#0B1510</Color>
+
+    <Color x:Key="PageBackground">#07100C</Color>
+    <Color x:Key="Surface">#0D1A14</Color>
+    <Color x:Key="SurfaceAlt">#13261D</Color>
+    <Color x:Key="CardStroke">#244133</Color>
+    <Color x:Key="TextPrimary">#F3FFF7</Color>
+    <Color x:Key="TextMuted">#AFC5B9</Color>
+    <Color x:Key="Accent">#6DD6A3</Color>
+    <Color x:Key="AccentWarm">#F4B860</Color>
+    <Color x:Key="Danger">#F07167</Color>
+</ResourceDictionary>
