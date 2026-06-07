@@ -33,10 +33,14 @@ Health check: /health
 
 ```text
 DATABASE_URL=строка подключения PostgreSQL
-OPENAI_API_KEY=ключ OpenAI API
-OPENAI_MODEL=gpt-5.4-mini
+GEMINI_API_KEY=бесплатный ключ Google AI Studio
+GEMINI_MODEL=gemini-2.5-flash
 PLANTS_APP_KEY=длинная случайная строка
 ```
+
+Ключ Gemini создаётся на странице `https://aistudio.google.com/apikey`.
+Платёжная карта для бесплатного уровня Gemini API не требуется. Бесплатный
+уровень имеет ограничения по количеству запросов.
 
 Для `PLANTS_APP_KEY` используйте строку длиной не менее 32 случайных символов.
 После публикации проверьте:

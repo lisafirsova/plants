@@ -6,7 +6,7 @@
 - PostgreSQL и Npgsql.
 - Google Sign-In для Android.
 - Android AlarmManager и BroadcastReceiver для локальных уведомлений.
-- OpenAI Responses API через отдельный ASP.NET Core proxy.
+- Gemini API через отдельный ASP.NET Core proxy; OpenAI доступен как необязательный резервный провайдер.
 
 ## База данных
 
@@ -27,13 +27,13 @@
 
 ## AI proxy
 
-Мобильный клиент отправляет вопрос, последние сообщения, контекст растений и выбранную фотографию в `POST /api/ai/chat` сервера `Plants.AiProxy`. Сервер вызывает OpenAI `POST /v1/responses`, передавая текст и изображение. API key не хранится в APK.
+Мобильный клиент отправляет вопрос, последние сообщения, контекст растений и выбранную фотографию в `POST /api/ai/chat` сервера `Plants.AiProxy`. Сервер вызывает Gemini `generateContent`, передавая текст и изображение. API key не хранится в APK.
 
 Переменные среды:
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
-$env:OPENAI_MODEL="gpt-5.4-mini"
+$env:GEMINI_API_KEY="ВАШ_КЛЮЧ"
+$env:GEMINI_MODEL="gemini-2.5-flash"
 dotnet run --project .\Backend\Plants.AiProxy\Plants.AiProxy.csproj
 ```
 

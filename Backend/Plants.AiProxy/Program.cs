@@ -46,11 +46,21 @@ app.MapPost("/api/ai/care-advice", async (
     IHttpClientFactory clientFactory,
     CancellationToken cancellationToken) =>
 {
+    var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    if (!string.IsNullOrWhiteSpace(geminiApiKey))
+    {
+        return await GetGeminiCareAdviceAsync(
+            request,
+            geminiApiKey,
+            clientFactory,
+            cancellationToken);
+    }
+
     var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     if (string.IsNullOrWhiteSpace(apiKey))
     {
         return Results.Problem(
-            "На сервере не задана переменная окружения OPENAI_API_KEY.",
+            "На сервере не задана переменная GEMINI_API_KEY или OPENAI_API_KEY.",
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
@@ -156,11 +166,21 @@ app.MapPost("/api/ai/chat", async (
     IHttpClientFactory clientFactory,
     CancellationToken cancellationToken) =>
 {
+    var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    if (!string.IsNullOrWhiteSpace(geminiApiKey))
+    {
+        return await GetGeminiChatAnswerAsync(
+            request,
+            geminiApiKey,
+            clientFactory,
+            cancellationToken);
+    }
+
     var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     if (string.IsNullOrWhiteSpace(apiKey))
     {
         return Results.Problem(
-            "На сервере не задана переменная окружения OPENAI_API_KEY.",
+            "На сервере не задана переменная GEMINI_API_KEY или OPENAI_API_KEY.",
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
     if (string.IsNullOrWhiteSpace(request.Question) && string.IsNullOrWhiteSpace(request.ImageBase64))
@@ -216,6 +236,192 @@ app.MapPost("/api/ai/chat", async (
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5079";
 app.Run($"http://0.0.0.0:{port}");
+
+static async Task<IResult> GetGeminiCareAdviceAsync(
+    AiCareRequest request,
+    string apiKey,
+    IHttpClientFactory clientFactory,
+    CancellationToken cancellationToken)
+{
+    var parts = CreateGeminiParts(BuildPrompt(request), request.ImageBase64, request.ImageMediaType);
+    var payload = new
+    {
+        contents = new[]
+        {
+            new
+            {
+                role = "user",
+                parts
+            }
+        },
+        generationConfig = new
+        {
+            responseMimeType = "application/json"
+        }
+    };
+
+    var responseText = await SendGeminiRequestAsync(
+        payload,
+        apiKey,
+        clientFactory,
+        cancellationToken);
+    if (responseText.Error is not null)
+    {
+        return Results.Problem(responseText.Error, statusCode: StatusCodes.Status502BadGateway);
+    }
+
+    try
+    {
+        var result = JsonSerializer.Deserialize<AiCareResponse>(
+            responseText.Text!,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return result is null || result.Recommendations.Count == 0
+            ? Results.Problem("Gemini не вернул рекомендации по уходу.", statusCode: 502)
+            : Results.Ok(result);
+    }
+    catch (JsonException)
+    {
+        return Results.Problem("Не удалось разобрать ответ Gemini.", statusCode: 502);
+    }
+}
+
+static async Task<IResult> GetGeminiChatAnswerAsync(
+    AiChatRequest request,
+    string apiKey,
+    IHttpClientFactory clientFactory,
+    CancellationToken cancellationToken)
+{
+    if (string.IsNullOrWhiteSpace(request.Question) && string.IsNullOrWhiteSpace(request.ImageBase64))
+    {
+        return Results.Problem("Передайте вопрос или фотографию.", statusCode: 400);
+    }
+
+    var parts = CreateGeminiParts(BuildChatPrompt(request), request.ImageBase64, request.ImageMediaType);
+    var payload = new
+    {
+        contents = new[]
+        {
+            new
+            {
+                role = "user",
+                parts
+            }
+        }
+    };
+
+    var responseText = await SendGeminiRequestAsync(
+        payload,
+        apiKey,
+        clientFactory,
+        cancellationToken);
+    return responseText.Error is not null
+        ? Results.Problem(responseText.Error, statusCode: StatusCodes.Status502BadGateway)
+        : Results.Ok(new AiChatResponse { Answer = responseText.Text! });
+}
+
+static List<object> CreateGeminiParts(
+    string prompt,
+    string? imageBase64,
+    string? imageMediaType)
+{
+    var parts = new List<object>
+    {
+        new { text = prompt }
+    };
+    if (!string.IsNullOrWhiteSpace(imageBase64))
+    {
+        parts.Add(new
+        {
+            inlineData = new
+            {
+                mimeType = imageMediaType ?? "image/jpeg",
+                data = imageBase64
+            }
+        });
+    }
+    return parts;
+}
+
+static async Task<GeminiTextResult> SendGeminiRequestAsync(
+    object payload,
+    string apiKey,
+    IHttpClientFactory clientFactory,
+    CancellationToken cancellationToken)
+{
+    var model = Environment.GetEnvironmentVariable("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    var client = clientFactory.CreateClient();
+    using var request = new HttpRequestMessage(
+        HttpMethod.Post,
+        $"https://generativelanguage.googleapis.com/v1beta/models/{Uri.EscapeDataString(model)}:generateContent");
+    request.Headers.Add("x-goog-api-key", apiKey);
+    request.Content = new StringContent(
+        JsonSerializer.Serialize(payload),
+        Encoding.UTF8,
+        "application/json");
+
+    using var response = await client.SendAsync(request, cancellationToken);
+    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+    if (!response.IsSuccessStatusCode)
+    {
+        return new GeminiTextResult(
+            null,
+            $"Gemini API вернул ошибку {(int)response.StatusCode}: {ExtractGeminiError(responseJson)}");
+    }
+
+    try
+    {
+        using var document = JsonDocument.Parse(responseJson);
+        var text = FindGeminiText(document.RootElement);
+        return string.IsNullOrWhiteSpace(text)
+            ? new GeminiTextResult(null, "Gemini API не вернул текст ответа.")
+            : new GeminiTextResult(text, null);
+    }
+    catch (JsonException)
+    {
+        return new GeminiTextResult(null, "Gemini API вернул некорректный JSON.");
+    }
+}
+
+static string ExtractGeminiError(string json)
+{
+    try
+    {
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.TryGetProperty("error", out var error) &&
+            error.TryGetProperty("message", out var message))
+        {
+            return message.GetString() ?? json;
+        }
+    }
+    catch (JsonException)
+    {
+    }
+    return json;
+}
+
+static string? FindGeminiText(JsonElement root)
+{
+    if (!root.TryGetProperty("candidates", out var candidates))
+    {
+        return null;
+    }
+    foreach (var candidate in candidates.EnumerateArray())
+    {
+        if (!candidate.TryGetProperty("content", out var content) ||
+            !content.TryGetProperty("parts", out var parts))
+        {
+            continue;
+        }
+        foreach (var part in parts.EnumerateArray())
+        {
+            if (part.TryGetProperty("text", out var text))
+            {
+                return text.GetString();
+            }
+        }
+    }
+    return null;
+}
 
 static string BuildPrompt(AiCareRequest request)
 {
@@ -360,3 +566,5 @@ public sealed class AiChatResponse
 {
     public string Answer { get; set; } = string.Empty;
 }
+
+public sealed record GeminiTextResult(string? Text, string? Error);
