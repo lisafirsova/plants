@@ -47,6 +47,7 @@ try {
         "build",
         ".\Plants.csproj",
         "--no-restore",
+        "-t:Rebuild",
         "-f",
         "net10.0-android",
         "-c",
@@ -64,7 +65,7 @@ try {
 
     $apk = Get-ChildItem `
         -Path ".\bin\$Configuration\net10.0-android" `
-        -Filter "*.apk" `
+        -Filter "*-Signed.apk" `
         | Sort-Object LastWriteTime -Descending `
         | Select-Object -First 1
 
